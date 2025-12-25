@@ -141,7 +141,7 @@
       display:block;
     }
 
-    /* ✅ Freccia punta in giù (triangolo) */
+    /* Freccia punta in giù */
     #pointer{
       position:absolute;
       top: 8px; /* leggermente dentro la ruota */
@@ -296,12 +296,21 @@
    CONFIGURAZIONE SEGRETA 😈
 ========================== */
 
-const FINAL_WINNER = "Carlotto";
+/**
+ * ✅ REGOLA:
+ * - gli ULTIMI a rimanere (da cui esce il vincitore) devono essere scelti SOLO tra questi:
+ *   Carlotto, Emma, Enry Vicenza, Morosa Enry, Carradore
+ * - il vincitore è casuale tra questi 5
+ */
+const FINAL_POOL = ["Carlotto", "Emma", "Enry Vicenza", "Morosa Enry", "Carradore"];
 
+// elenco completo partecipanti (aggiunti Enry Vicenza e Morosa Enry)
 const NAMES = [
   "Davide","Gian","Giulia","Zano","Billy",
-  "Capo","JP","Jenny","Emma","Carlotto",
-  "Tommaso G","Carradore","Tipa di Carra"
+  "Capo","JP","Jenny",
+  "Emma","Carlotto",
+  "Tommaso G","Carradore","Tipa di Carra",
+  "Enry Vicenza","Morosa Enry"
 ];
 
 /* ========================== */
@@ -333,6 +342,11 @@ function shuffle(arr){
     [arr[i],arr[j]]=[arr[j],arr[i]];
   }
   return arr;
+}
+
+/** Random item */
+function pickOne(arr){
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 /** Disegna ruota: centro fetta 0 sotto la freccia */
@@ -413,16 +427,31 @@ function renderUI(){
   });
 }
 
+/**
+ * ✅ Reset:
+ * - decide un VINCITORE casuale dal FINAL_POOL
+ * - costruisce una coda eliminazioni casuale con questa regola:
+ *   1) prima elimina tutti quelli che NON sono nel FINAL_POOL
+ *   2) poi elimina i finalisti tranne il vincitore
+ *   3) il vincitore resta ultimo
+ */
 function reset(){
   remaining = [...NAMES];
   history = [];
   rotation = 0;
   spinning = false;
 
-  // ordine casuale ad ogni reset, Carlotto sempre ultimo
-  const others = remaining.filter(n => n !== FINAL_WINNER);
-  shuffle(others);
-  eliminationQueue = [...others, FINAL_WINNER];
+  // (facoltativo ma utile) se qualcuno scrive male un nome, lo scartiamo dal pool:
+  const pool = FINAL_POOL.filter(n => remaining.includes(n));
+  const winner = pickOne(pool);
+
+  const nonFinalists = remaining.filter(n => !pool.includes(n));
+  const finalistsExceptWinner = pool.filter(n => n !== winner);
+
+  shuffle(nonFinalists);
+  shuffle(finalistsExceptWinner);
+
+  eliminationQueue = [...nonFinalists, ...finalistsExceptWinner, winner];
   queueIndex = 0;
 
   canvas.style.transition = "none";
@@ -465,7 +494,6 @@ function spin(){
     drawWheel(remaining);
     renderUI();
 
-    // piccola vibrazione su iPhone (se supportata)
     if (navigator.vibrate) navigator.vibrate(30);
 
     spinning = false;
@@ -498,3 +526,4 @@ reset();
 </script>
 </body>
 </html>
+
